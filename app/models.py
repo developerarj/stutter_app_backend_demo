@@ -1,79 +1,33 @@
-from flask import Blueprint, request, jsonify
-from app.models import User
+# app/models.py
+
+from app import mongo
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import mongo, create_app
-import jwt
 
-from functools import wraps
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+class User:
+    def __init__(self, username, email, password):
+        self.username = username
+        self.email = email
+        self.set_password(password)
 
-bp = Blueprint('main', __name__)
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
-# Function to generate JWT token 
+    def save(self):
+        result = mongo.db.users.insert_one(self.to_dict())
+        self.user_id = result.inserted_id  # Set the user's _id as user_id
+        return result
 
-# Login required decorator to protect routes
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'error': 'Token is missing'}), 401
+    def to_dict(self):
+        return {
+            "username": self.username,
+            "email": self.email,
+            "password_hash": self.password_hash
+        }
 
-        try:
-            data = jwt.decode(token, create_app().config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = mongo.db.users.find_one({'username': data['username']})
-        except:
-            return jsonify({'error': 'Token is invalid'}), 401
-
-        return f(current_user, *args, **kwargs)
-
-    return decorated_function
-
-@bp.route('/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-
-    if not username or not email or not password:
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    # Check if the username already exists in the database
-    existing_user = mongo.db.users.find_one({'username': username})
-    if existing_user:
-        return jsonify({'error': 'Username already exists'}), 400
-
-    # Create a new user document
-    new_user = {
-        'username': username,
-        'email': email,
-        'password_hash': generate_password_hash(password)  # Hash the password before storing
-    }
-
-    # Insert the new user document into the 'users' collection
-    mongo.db.users.insert_one(new_user)
-
-    return jsonify({'message': 'User created successfully'}), 201
-
-
-@bp.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-
-    if not username or not password:
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    # Query the user from the MongoDB database
-    user = mongo.db.users.find_one({'username': username})
-
-    if not user or not check_password_hash(user['password_hash'], password):
-        return jsonify({'error': 'Invalid username or password'}), 401
-
-    # Generate token
-    token = create_access_token(identity=username)
-
-    return jsonify({'message': 'Login successful', 'token': token}), 200
+    @staticmethod
+    def get_all():
+        return mongo.db.users.find()
