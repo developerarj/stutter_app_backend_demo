@@ -18,6 +18,7 @@ def register():
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+    isAdmin= data.get('isAdmin',False)
 
     if not username or not email or not password:
         return jsonify({'error': 'Missing required fields'}), 400
@@ -26,10 +27,15 @@ def register():
     if existing_user:
         return jsonify({'error': 'Username already exists'}), 400
 
+    existing_email = mongo.db.users.find_one({'email': email})
+    if existing_email:
+        return jsonify({'error': 'Email already exists'}), 400
+
     new_user = {
         'username': username,
         'email': email,
-        'password_hash': generate_password_hash(password)
+        'password_hash': generate_password_hash(password),
+        'isAdmin': isAdmin
     }
     mongo.db.users.insert_one(new_user)
 
@@ -62,10 +68,15 @@ def user_details():
     user = mongo.db.users.find_one({'username': current_user})
     
     if user:
-        response = {'username': user['username'], 'email': user['email']}
+        response = {
+            'username': user['username'],
+            'email': user['email'],
+            'isAdmin': user.get('isAdmin', False)  # Include isAdmin field, defaulting to False if not present
+        }
         return jsonify(response), 200
     else:
         return jsonify({'message': 'User details not found'}), 404
+
 
 # Add a model
 @bp.route('/stutter-class-model', methods=['POST'])
@@ -118,10 +129,6 @@ def delete_model(model_id):
 
 
 #Upload model.
-import os
-from flask import request, jsonify
-from werkzeug.utils import secure_filename
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
 @bp.route('/upload', methods=['POST'])
 @jwt_required()
