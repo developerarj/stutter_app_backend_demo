@@ -1,12 +1,19 @@
+# __init__.py
+
 from flask import Flask
 from flask_pymongo import PyMongo
 from config import Config
+from .routes.admin_routes import admin_bp, initialize_admin_routes
+from .routes.user_routes import user_bp, initialize_user_routes
+from .routes.common_routes import common_bp, initialize_common_routes
+from .routes.static_routes import static_bp
 
-mongo = PyMongo()
 
 def create_app(config_class=Config):
-    app = Flask(__name__,static_url_path='', static_folder='files')
+    app = Flask(__name__, static_url_path='', static_folder='files')
     app.config.from_object(config_class)
+
+    mongo = PyMongo(app)
 
     mongo.init_app(app)
 
@@ -15,19 +22,25 @@ def create_app(config_class=Config):
         if 'users' not in mongo.db.list_collection_names():
             mongo.db.create_collection('users')
 
-        # Check if stutter_class_modal collection exists, if not create it
         if 'stutter_class_modal' not in mongo.db.list_collection_names():
             mongo.db.create_collection('stutter_class_modal')
 
-        # Create 'modal' collection if it doesn't exist.
         if 'modal' not in mongo.db.list_collection_names():
             mongo.db.create_collection('modal')
-        
-        #Create 'audioFile' collection if doesn't exist.
+
         if 'audioFiles' not in mongo.db.list_collection_names():
             mongo.db.create_collection('audioFiles')
 
-    from app.routes import bp as main_bp
-    app.register_blueprint(main_bp)
+        if 'classifications' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('classifications')
+
+    initialize_admin_routes(mongo)
+    initialize_user_routes(mongo)
+    initialize_common_routes(mongo)
+
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(common_bp)
+    app.register_blueprint(static_bp)
 
     return app

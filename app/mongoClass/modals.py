@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from datetime import datetime
 
+
 class User:
     def __init__(self, username, email, password, isAdmin=False):
         self.username = username
@@ -36,12 +37,12 @@ class User:
             "updatedDate": self.updatedDate
         }
 
-    
+
 class Modal:
-    def __init__(self, modal_type, accuracy,url):
+    def __init__(self, modal_type, accuracy, url):
         self.type = modal_type
         self.accuracy = accuracy
-        self.url=url
+        self.url = url
         self.created_date = datetime.utcnow()
         self.updated_date = datetime.utcnow()
 
@@ -54,11 +55,11 @@ class Modal:
         return {
             "type": self.type,
             "accuracy": self.accuracy,
-            "url":self.url,
-            "createdDate":self.createdDate,
-            "updatedDate":self.updatedDate
+            "url": self.url,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
         }
-    
+
 
 class AudioFiles:
     def __init__(self, user_id, url):
@@ -80,6 +81,21 @@ class AudioFiles:
             "updatedDate": self.updatedDate
         }
 
-    @staticmethod
-    def get_all():
-        return mongo.db.modal.find()
+
+class Classifications:
+    def __init__(self, title):
+        self.title = title
+        self.created_date = datetime.utcnow()
+        self.updated_date = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.modal.insert_one(self.to_dict())
+        self.classification_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
