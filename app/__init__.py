@@ -7,10 +7,12 @@ from .routes.admin_routes import admin_bp, initialize_admin_routes
 from .routes.user_routes import user_bp, initialize_user_routes
 from .routes.common_routes import common_bp, initialize_common_routes
 from .routes.static_routes import static_bp
+from flask_cors import CORS
 
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_url_path='', static_folder='files')
+    CORS(app)
     app.config.from_object(config_class)
 
     mongo = PyMongo(app)

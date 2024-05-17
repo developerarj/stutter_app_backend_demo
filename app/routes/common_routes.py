@@ -35,7 +35,7 @@ def initialize_common_routes(mongo):
 
         token = create_access_token(identity=username)
 
-        return jsonify({'message': 'Login successful', 'token': token}), 200
+        return jsonify({'message': 'Login successful', 'token': token, 'isAdmin': user['isAdmin']}), 200
 
     # Get user details
 
