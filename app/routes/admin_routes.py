@@ -5,12 +5,26 @@ from flask_jwt_extended import jwt_required
 from bson import ObjectId
 from datetime import datetime
 from bson import ObjectId
+from bson.errors import InvalidId
+import os
+from urllib.parse import urlparse
+
 
 admin_bp = Blueprint('admin', __name__)
 
 # ------------------------ Login, Register and Get details of user------------------------#
 
 # Register user
+
+
+def extract_filename_from_url(url):
+    # Parse the URL
+    parsed_url = urlparse(url)
+    # Extract the path
+    path = parsed_url.path
+    # Get the filename from the path
+    filename = os.path.basename(path)
+    return filename
 
 
 def initialize_admin_routes(mongo):
@@ -47,6 +61,24 @@ def initialize_admin_routes(mongo):
         return jsonify({'message': 'User created successfully'}), 201
 
     # -----------------------------Add, Delete, Update and List Model------------------------------------- #
+    @admin_bp.route('/admin/modal/<modal_id>', methods=['GET'])
+    @jwt_required()
+    def get_modal_by_id(modal_id):
+        try:
+            # Convert modal_id from string to ObjectId
+            modal_id = ObjectId(modal_id)
+        except (InvalidId, TypeError):
+            return jsonify({'error': 'Invalid modal ID format'}), 400
+
+        # Find the modal by ID
+        modal = mongo.db.modal.find_one({'_id': modal_id})
+
+        if modal:
+            # Convert ObjectId to string for JSON serialization
+            modal['_id'] = str(modal['_id'])
+            return jsonify(modal), 200
+        else:
+            return jsonify({'error': 'Modal not found'}), 404
     # Add a modal
 
     @admin_bp.route('/admin/modal', methods=['POST'])
@@ -55,21 +87,39 @@ def initialize_admin_routes(mongo):
         data = request.json
         modal_type = data.get('type')
         accuracy = data.get('accuracy')
+        version = data.get('version')
+        isActive = data.get('isActive')
         createdDate = datetime.utcnow()
         updatedDate = createdDate
 
         if not modal_type or not accuracy:
             return jsonify({'error': 'Missing required fields'}), 400
 
+        # Check if modal_type already exists
+        existing_modal = mongo.db.modal.find_one({'type': modal_type})
+        if existing_modal:
+            return jsonify({'error': 'Modal type already exists'}), 400
+
         new_modal = {
             'type': modal_type,
             'accuracy': accuracy,
+            'version': version,
+            'isActive': isActive,
+            'url': "",
             'createdDate': createdDate,
             'updatedDate': updatedDate
         }
-        mongo.db.modal.insert_one(new_modal)
 
-        return jsonify({'message': 'Modal added successfully'}), 201
+        result = mongo.db.modal.insert_one(new_modal)
+
+        if result:
+            response = {
+                'id': str(result.inserted_id),  # Access inserted_id attribute
+                'message': "Modal added successfully",
+            }
+            return jsonify(response), 201
+        else:
+            return jsonify({'message': 'Modal details not found'}), 404
 
     # Update model
 
@@ -79,6 +129,8 @@ def initialize_admin_routes(mongo):
         data = request.json
         modal_type = data.get('type')
         accuracy = data.get('accuracy')
+        version = data.get('version')
+        isActive = data.get('isActive')
         modal_url = data.get('url')
         updatedDate = datetime.utcnow()
 
@@ -94,6 +146,10 @@ def initialize_admin_routes(mongo):
             updated_modal['type'] = modal_type
         if accuracy is not None:
             updated_modal['accuracy'] = accuracy
+        if version is not None:
+            updated_modal['version'] = version
+        if isActive is not None:
+            updated_modal['isActive'] = isActive
         if modal_url is not None:
             updated_modal['url'] = modal_url
 
@@ -112,6 +168,14 @@ def initialize_admin_routes(mongo):
         if not existing_modal:
             return jsonify({'error': 'Modal not found'}), 404
 
+        filename = extract_filename_from_url(
+            existing_modal['url'])
+
+        file_path = os.path.join(
+            "files", "modal", filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
         mongo.db.modal.delete_one({'_id': ObjectId(modal_id)})
         return jsonify({'message': 'Modal deleted successfully'}), 200
 
@@ -122,7 +186,7 @@ def initialize_admin_routes(mongo):
     def list_modals():
         # Exclude _id field from the response
         modals = list(mongo.db.modal.find({}, {'_id': 1, 'type': 1,
-                                               'accuracy': 1, 'createdDate': 1, 'updatedDate': 1}))
+                                               'accuracy': 1, 'version': 1, 'isActive': 1, 'url': 1, 'createdDate': 1, 'updatedDate': 1}))
 
         if not modals:
             return jsonify({'message': 'No modals found'}), 404
@@ -130,13 +194,29 @@ def initialize_admin_routes(mongo):
         formatted_modals = []
         for modal in modals:
             modal['_id'] = str(modal['_id'])  # Convert ObjectId to string
-            modal['type'] = str(modal['type'])
-            modal['accuracy'] = str(modal['accuracy'])
-            modal['createdDate'] = str(modal['createdDate'])
-            modal['updatedDate'] = str(modal['updatedDate'])
+
             formatted_modals.append(modal)
 
         return jsonify({'modals': formatted_modals}), 200
+
+# -----------------------------Add, Delete, Update and List Audio Files------------------------------------- #
+    @admin_bp.route('/admin/audio-files', methods=['GET'])
+    @jwt_required()
+    def userAudioFiles():
+
+        audiofiles = list(mongo.db.audioFiles.find(
+            {}, {'_id': 1, 'filename': 1, 'file_url': 1, 'isPredicted': 1,  'activitySessionId': 1, 'createdDate': 1, 'updatedDate': 1}))
+
+        if not audiofiles:
+            return jsonify({'message': 'No Audio files found'}), 404
+
+        formatted_audiofiles = []
+        for file in audiofiles:
+            file['_id'] = str(file['_id'])  # Convert ObjectId to string
+            formatted_audiofiles.append(file)
+
+        # Convert to JSON using dumps from bson.json_util
+        return jsonify({'audiofiles': formatted_audiofiles}), 200
 
     # -----------------------------Add, Delete, Update and List classification------------------------------------- #
 
@@ -217,3 +297,130 @@ def initialize_admin_routes(mongo):
             formatted_classifications.append(classification)
 
         return jsonify({'classifications': formatted_classifications}), 200
+
+    @admin_bp.route('/admin/prediction', methods=['GET'])
+    @jwt_required()
+    def getPrediction():
+
+        predictions = list(mongo.db.predictions.find({}, {
+            '_id': 1, 'user_id': 1, 'audioFileId': 1, 'modalId': 1, 'totalFiles': 1,
+            'fluency': 1, 'disfluency': 1, 'naturalPause': 1, 'interjection': 1,
+            'noSpeech': 1, 'music': 1, 'createdDate': 1, 'updatedDate': 1
+        }))
+
+        if not predictions:
+            return jsonify({'message': 'No Prediction found'}), 404
+
+        formatted_predictions = []
+        for pred in predictions:
+            # Fetch the audio file object
+            audio_file = mongo.db.audioFiles.find_one(
+                {'_id': ObjectId(pred['audioFileId'])})
+            if audio_file:
+                audio_file['_id'] = str(audio_file['_id'])
+
+            # Fetch the modal object
+            modal = mongo.db.modal.find_one(
+                {'_id': ObjectId(pred['modalId'])})
+            if modal:
+                modal['_id'] = str(modal['_id'])
+
+            # Prepare the formatted prediction
+            formatted_prediction = {
+                '_id': str(pred['_id']),
+                'audioFile': audio_file,
+                'modal': modal,
+                'totalFiles': pred.get('totalFiles'),
+                'fluency': pred.get('fluency'),
+                'disfluency': pred.get('disfluency'),
+                'naturalPause': pred.get('naturalPause'),
+                'interjection': pred.get('interjection'),
+                'noSpeech': pred.get('noSpeech'),
+                'music': pred.get('music'),
+                'createdDate': pred.get('createdDate'),
+                'updatedDate': pred.get('updatedDate')
+            }
+
+            formatted_predictions.append(formatted_prediction)
+
+        return jsonify({'predictions': formatted_predictions}), 200
+
+    @admin_bp.route('/admin/count', methods=['GET'])
+    @jwt_required()
+    def getCount():
+        modal_count = mongo.db.modal.count_documents({})
+        users_count = mongo.db.users.count_documents({})
+        classifications_count = mongo.db.classifications.count_documents({})
+        predictions_count = mongo.db.predictions.count_documents({})
+        audioFiles_count = mongo.db.audioFiles.count_documents({})
+
+        return jsonify({
+            'modal_count': modal_count,
+            'users_count': users_count,
+            'classifications_count': classifications_count,
+            'predictions_count': predictions_count,
+            'audioFiles_count': audioFiles_count
+        }), 200
+
+    @admin_bp.route('/admin/activity', methods=['POST'])
+    @jwt_required()
+    def addActivity():
+        data = request.json
+        title = data.get('title')
+        endpoint = data.get('endpoint')
+        createdDate = datetime.utcnow()
+        updatedDate = createdDate
+
+        if not title:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        new_modal = {
+            'title': title,
+            'endpoint': endpoint,
+            'createdDate': createdDate,
+            'updatedDate': updatedDate
+        }
+        mongo.db.activity.insert_one(new_modal)
+
+        return jsonify({'message': 'Activity added successfully'}), 201
+
+    @admin_bp.route('/admin/activity/<activity_id>', methods=['DELETE'])
+    @jwt_required()
+    def delete_activity(activity_id):
+        existing_activity = mongo.db.activity.find_one(
+            {'_id': ObjectId(activity_id)})
+        if not existing_activity:
+            return jsonify({'error': 'Activity not found'}), 404
+
+        mongo.db.activity.delete_one(
+            {'_id': ObjectId(activity_id)})
+        return jsonify({'message': 'Activity deleted successfully'}), 200
+
+    @admin_bp.route('/admin/activity/<activity_id>', methods=['PUT'])
+    @jwt_required()
+    def update_activity(activity_id):
+        data = request.json
+        title = data.get('title')
+        endpoint = data.get('endpoint')
+        updatedDate = datetime.utcnow()
+
+        existing_activity = mongo.db.activity.find_one(
+            {'_id': ObjectId(activity_id)})
+        if not existing_activity:
+            return jsonify({'error': 'Classification not found'}), 404
+
+        updated_existing_activity = {
+            'updatedDate': updatedDate
+        }
+
+        if title is not None:
+            updated_existing_activity['title'] = title
+
+        if endpoint is not None:
+            updated_existing_activity['endpoint'] = endpoint
+
+        # Update the modal in the database
+        mongo.db.activity.update_one({'_id': ObjectId(activity_id)}, {
+            '$set': {**updated_existing_activity}})
+
+        return jsonify({'message': 'Activity updated successfully'}), 200

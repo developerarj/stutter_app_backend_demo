@@ -24,9 +24,6 @@ def create_app(config_class=Config):
         if 'users' not in mongo.db.list_collection_names():
             mongo.db.create_collection('users')
 
-        if 'stutter_class_modal' not in mongo.db.list_collection_names():
-            mongo.db.create_collection('stutter_class_modal')
-
         if 'modal' not in mongo.db.list_collection_names():
             mongo.db.create_collection('modal')
 
@@ -35,6 +32,18 @@ def create_app(config_class=Config):
 
         if 'classifications' not in mongo.db.list_collection_names():
             mongo.db.create_collection('classifications')
+
+        if 'predictions' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('predictions')
+
+        if 'feedback' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('feedback')
+
+        if 'activity' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('activity')
+
+        if 'activitySession' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('activitySession')
 
     initialize_admin_routes(mongo)
     initialize_user_routes(mongo)

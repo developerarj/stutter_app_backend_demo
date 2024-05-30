@@ -39,32 +39,40 @@ class User:
 
 
 class Modal:
-    def __init__(self, modal_type, accuracy, url):
-        self.type = modal_type
-        self.accuracy = accuracy
-        self.url = url
-        self.created_date = datetime.utcnow()
-        self.updated_date = datetime.utcnow()
+    def __init__(self, modal_type: str, accuracy: float, url: str, isActive: bool, version: str):
+        self.type: str = modal_type
+        self.accuracy: float = accuracy
+        self.url: str = url
+        self.isActive: bool = isActive
+        self.version: str = version
+        self.created_date: datetime = datetime.utcnow()
+        self.updated_date: datetime = datetime.utcnow()
+        self.modal_id: Any = None  # Will be set after saving to the database
 
-    def save(self):
+    def save(self) -> Any:
         result = mongo.db.modal.insert_one(self.to_dict())
         self.modal_id = result.inserted_id
         return result
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "type": self.type,
             "accuracy": self.accuracy,
             "url": self.url,
-            "createdDate": self.createdDate,
-            "updatedDate": self.updatedDate
+            "isActive": self.isActive,
+            "version": self.version,
+            "createdDate": self.created_date,
+            "updatedDate": self.updated_date
         }
 
 
 class AudioFiles:
-    def __init__(self, user_id, url):
+    def __init__(self, user_id, url, isPredicted, activitySessionId, text):
         self.user_id = user_id
         self.url = url
+        self.isPredicted = isPredicted
+        self.activitySessionId = activitySessionId
+        self.text = text
         self.createdDate = datetime.utcnow()
         self.updatedDate = datetime.utcnow()
 
@@ -77,6 +85,9 @@ class AudioFiles:
         return {
             "user_id": self.user_id,
             "url": self.url,
+            "isPredicted": self.isPredicted,
+            "activitySessionId": self.activitySessionId,
+            "text": self.text,
             "createdDate": self.createdDate,
             "updatedDate": self.updatedDate
         }
@@ -96,6 +107,120 @@ class Classifications:
     def to_dict(self):
         return {
             "title": self.title,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
+
+
+class Predictions:
+    def __init__(self, user_id, audioFileId, modalId, totalFiles, fluency, disfluency, naturalPause, interjection, noSpeech, music, activitySessionId):
+        self.user_id = user_id
+        self.audioFileId = audioFileId
+        self.modalId = modalId
+        self.totalFiles = totalFiles
+        self.fluency = fluency
+        self.disfluency = disfluency
+        self.naturalPause = naturalPause
+        self.interjection = interjection
+        self.noSpeech = noSpeech
+        self.music = music
+        self.activitySessionId = activitySessionId
+        self.createdDate = datetime.utcnow()
+        self.updatedDate = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.predictions.insert_one(self.to_dict())
+        self.predictions_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "audioFileId": self.audioFileId,
+            "modalId": self.modalId,
+            "totalFiles": self.totalFiles,
+            "fluency": self.fluency,
+            "disfluency": self.disfluency,
+            "naturalPause": self.naturalPause,
+            "interjection": self.interjection,
+            "noSpeech": self.noSpeech,
+            "music": self.music,
+            "activitySessionId": self.activitySessionId,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
+
+
+class Feedback:
+    def __init__(self, user_id, predictionId, feedback, disfluency, fluency, interjection, naturalPause, activitySessionId):
+        self.user_id = user_id
+        self.predictionId = predictionId
+        self.feedback = feedback
+        self.disfluency = disfluency
+        self.fluency = fluency
+        self.interjection = interjection
+        self.naturalPause = naturalPause
+        self.activitySessionId = activitySessionId
+        self.created_date = datetime.utcnow()
+        self.updated_date = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.modal.insert_one(self.to_dict())
+        self.feedback_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "predictionId": self.predictionId,
+            "feedback": self.feedback,
+            "disfluency": self.disfluency,
+            "fluency": self.fluency,
+            "interjection": self.interjection,
+            "naturalPause": self.naturalPause,
+            "activitySessionId": self.activitySessionId,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
+
+
+class Activity:
+    def __init__(self, title, endpoint):
+        self.title = title
+        self.endpoint = endpoint
+        self.created_date = datetime.utcnow()
+        self.updated_date = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.modal.insert_one(self.to_dict())
+        self.activity_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "endpoint": self.endpoint,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
+
+
+class ActivitySession:
+    def __init__(self, user_id, activity_id):
+        self.user_id = user_id
+        self.activity_id = activity_id
+        self.created_date = datetime.utcnow()
+        self.updated_date = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.modal.insert_one(self.to_dict())
+        self.activitySession_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "user_id": self.activitySession_id,
+            "activity_id": self.activity_id,
             "createdDate": self.createdDate,
             "updatedDate": self.updatedDate
         }
