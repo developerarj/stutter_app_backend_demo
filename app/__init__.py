@@ -29,41 +29,35 @@ def create_app(config_class=Config):
     mongo.init_app(app)
 
     with app.app_context():
-        try:
-            if 'users' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('users')
+        if 'users' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('users')
 
-            if 'modal' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('modal')
+        if 'modal' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('modal')
 
-            if 'audioFiles' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('audioFiles')
+        if 'audioFiles' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('audioFiles')
 
-            if 'classifications' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('classifications')
+        if 'classifications' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('classifications')
 
-            if 'predictions' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('predictions')
+        if 'predictions' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('predictions')
 
-            if 'feedback' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('feedback')
+        if 'feedback' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('feedback')
 
-            if 'activity' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('activity')
+        if 'activity' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('activity')
 
-            if 'activitySession' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('activitySession')
+        if 'activitySession' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('activitySession')
 
-            if 'activityTheme' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('activityTheme')
+        if 'activityTheme' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('activityTheme')
 
-            if 'dialogue' not in mongo.db.list_collection_names():
-                mongo.db.create_collection('dialogue')
-
-            logger.debug(
-                "Successfully connected to MongoDB and ensured collections exist.")
-        except Exception as e:
-            logger.error(f"Error connecting to MongoDB: {e}")
+        if 'dialogue' not in mongo.db.list_collection_names():
+            mongo.db.create_collection('dialogue')
 
     initialize_admin_routes(mongo)
     initialize_user_routes(mongo)

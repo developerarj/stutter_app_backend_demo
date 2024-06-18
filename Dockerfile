@@ -46,6 +46,9 @@ RUN python3.11 -m pip install --no-cache-dir -r requirements.txt
 # Ensure CA certificates are up to date
 RUN apt-get update && apt-get install -y ca-certificates
 
+# Define volumes for file uploads
+VOLUME ["/app/files/audioFiles", "/app/files/modal", "/app/files/user"]
+
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 
