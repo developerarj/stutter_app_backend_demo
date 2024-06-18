@@ -206,9 +206,10 @@ class Activity:
 
 
 class ActivitySession:
-    def __init__(self, user_id, activity_id):
+    def __init__(self, user_id, activity_id, theme_id):
         self.user_id = user_id
         self.activity_id = activity_id
+        self.theme_id = theme_id
         self.created_date = datetime.utcnow()
         self.updated_date = datetime.utcnow()
 
@@ -219,8 +220,59 @@ class ActivitySession:
 
     def to_dict(self):
         return {
-            "user_id": self.activitySession_id,
+            "user_id": self.user_id,
             "activity_id": self.activity_id,
+            "theme_id":  self.theme_id,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
+
+
+class ActivityTheme:
+    def __init__(self, theme, activity_id):
+        self.theme = theme
+
+        self.activity_id = activity_id
+
+        self.created_date = datetime.utcnow()
+        self.updated_date = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.modal.insert_one(self.to_dict())
+        self.activityTheme_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "theme": self.theme,
+            "activity_id": self.activity_id,
+            "createdDate": self.createdDate,
+            "updatedDate": self.updatedDate
+        }
+
+
+class Dialogue:
+    def __init__(self, theme_id,  user_id, activity_id, feedback, friend_name):
+        self.theme_id = theme_id
+        self.user_id = user_id
+        self.activity_id = activity_id
+        self.feedback = feedback
+        self.friend_name = friend_name
+        self.created_date = datetime.utcnow()
+        self.updated_date = datetime.utcnow()
+
+    def save(self):
+        result = mongo.db.modal.insert_one(self.to_dict())
+        self.activityDialogue_id = result.inserted_id
+        return result
+
+    def to_dict(self):
+        return {
+            "theme_id": self.theme_id,
+            "user_id": self.user_id,
+            "activity_id": self.activity_id,
+            "feedback": self.feedback,
+            "friend_name": self.friend_name,
             "createdDate": self.createdDate,
             "updatedDate": self.updatedDate
         }

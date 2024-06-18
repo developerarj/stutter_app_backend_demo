@@ -13,6 +13,8 @@ import requests
 import os
 import sys
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 # sys.stdout = open(os.devnull, 'w')
 # sys.stderr = open(os.devnull, 'w')
 

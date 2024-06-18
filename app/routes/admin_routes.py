@@ -298,6 +298,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'classifications': formatted_classifications}), 200
 
+     # -----------------------------Prediction------------------------------------- #
+
     @admin_bp.route('/admin/prediction', methods=['GET'])
     @jwt_required()
     def getPrediction():
@@ -345,6 +347,7 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'predictions': formatted_predictions}), 200
 
+ # -----------------------------Count------------------------------------- #
     @admin_bp.route('/admin/count', methods=['GET'])
     @jwt_required()
     def getCount():
@@ -362,6 +365,7 @@ def initialize_admin_routes(mongo):
             'audioFiles_count': audioFiles_count
         }), 200
 
+ # -----------------------------Activity------------------------------------- #
     @admin_bp.route('/admin/activity', methods=['POST'])
     @jwt_required()
     def addActivity():
@@ -424,3 +428,25 @@ def initialize_admin_routes(mongo):
             '$set': {**updated_existing_activity}})
 
         return jsonify({'message': 'Activity updated successfully'}), 200
+
+    @admin_bp.route('/admin/activity-theme', methods=['POST'])
+    @jwt_required()
+    def add_activity_theme():
+        data = request.json
+        theme = data.get('theme')
+        activity_id = data.get('activity_id')
+        createdDate = datetime.utcnow()
+        updatedDate = createdDate
+
+        if not theme:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        new_modal = {
+            'theme': theme,
+            'activity_id': str(activity_id),
+            'createdDate': createdDate,
+            'updatedDate': updatedDate
+        }
+        mongo.db.activityTheme.insert_one(new_modal)
+
+        return jsonify({'message': 'Theme added successfully'}), 201

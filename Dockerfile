@@ -1,4 +1,3 @@
-
 # Use an official Ubuntu image as a parent image
 FROM ubuntu:20.04
 
@@ -13,6 +12,11 @@ RUN apt-get update && \
     python3.11-distutils \
     wget \
     ffmpeg \
+    libssl-dev \
+    ca-certificates \
+    iputils-ping \
+    openssl \
+    ntp \
     && apt-get install --fix-missing \
     && rm -rf /var/lib/apt/lists/*
 
@@ -39,9 +43,11 @@ ENV FLASK_ENV=development
 # Install any needed dependencies specified in requirements.txt
 RUN python3.11 -m pip install --no-cache-dir -r requirements.txt
 
+# Ensure CA certificates are up to date
+RUN apt-get update && apt-get install -y ca-certificates
+
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 
 # Run the application
-CMD ["python3", "run.py"]
-
+CMD ["python3.11", "run.py"]
