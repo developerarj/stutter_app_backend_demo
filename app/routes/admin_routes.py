@@ -69,7 +69,7 @@ def initialize_admin_routes(mongo):
             sessions = list(mongo.db.activitySession.find(
                 {'userId': str(userId)},
                 {'_id': 1, 'activity_id': 1, 'theme_id': 1,
-                    'createdDate': 1, 'updatedDate': 1}
+                 'createdDate': 1, 'updatedDate': 1}
             ))
 
             formatted_sessions = []
@@ -77,17 +77,40 @@ def initialize_admin_routes(mongo):
                 session_id = str(session['_id'])
                 audioFiles = list(mongo.db.audioFiles.find(
                     {'activitySessionId': session_id},
-                    {'_id': 1, 'filename': 1, 'file_url': 1, 'isPredicted': 1,
-                        'activitySessionId': 1, 'text': 1, 'createdDate': 1, 'updatedDate': 1}
+                    {'_id': 1, 'filename': 1, 'file_url': 1, 'isPredicted': 1, 'totalFiles': 1,
+                     'activitySessionId': 1, 'text': 1, 'createdDate': 1, 'updatedDate': 1}
                 ))
 
                 formatted_audioFiles = []
                 for file in audioFiles:
                     file['_id'] = str(file['_id'])
+                    file['prediction'] = None
+
+                    prediction = mongo.db.predictions.find_one(
+                        {'audioFileId': str(file['_id'])})
+
+                    if prediction:
+                        prediction['_id'] = str(prediction['_id'])
+                        modal = mongo.db.modal.find_one(
+                            {'_id': ObjectId(prediction['modalId'])})
+
+                        if modal:
+                            modal['_id'] = str(modal['_id'])
+                            prediction['modal'] = modal
+
+                        file['prediction'] = prediction
+
                     formatted_audioFiles.append(file)
+
+                activityTheme = mongo.db.activityTheme.find_one(
+                    {'_id': ObjectId(session['theme_id'])})
+
+                if activityTheme:
+                    activityTheme['_id'] = str(activityTheme['_id'])
 
                 session['_id'] = session_id
                 session['audioFiles'] = formatted_audioFiles
+                session['theme'] = activityTheme
                 formatted_sessions.append(session)
 
             response = {
@@ -102,8 +125,8 @@ def initialize_admin_routes(mongo):
         else:
             return jsonify({'message': 'User details not found'}), 404
 
-    @admin_bp.route('/admin/list-users', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/list-users', methods=['GET'])
+    @ jwt_required()
     def listUsers():
 
         users = list(mongo.db.users.find(
@@ -121,8 +144,8 @@ def initialize_admin_routes(mongo):
         return jsonify({'users': formatted_users}), 200
 
     # -----------------------------Add, Delete, Update and List Model------------------------------------- #
-    @admin_bp.route('/admin/modal/<modal_id>', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/modal/<modal_id>', methods=['GET'])
+    @ jwt_required()
     def get_modal_by_id(modal_id):
         try:
             # Convert modal_id from string to ObjectId
@@ -141,8 +164,8 @@ def initialize_admin_routes(mongo):
             return jsonify({'error': 'Modal not found'}), 404
     # Add a modal
 
-    @admin_bp.route('/admin/modal', methods=['POST'])
-    @jwt_required()
+    @ admin_bp.route('/admin/modal', methods=['POST'])
+    @ jwt_required()
     def add_modal():
         data = request.json
         modal_type = data.get('type')
@@ -183,8 +206,8 @@ def initialize_admin_routes(mongo):
 
     # Update model
 
-    @admin_bp.route('/admin/modal/<modal_id>', methods=['PUT'])
-    @jwt_required()
+    @ admin_bp.route('/admin/modal/<modal_id>', methods=['PUT'])
+    @ jwt_required()
     def update_modal(modal_id):
         data = request.json
         modal_type = data.get('type')
@@ -221,8 +244,8 @@ def initialize_admin_routes(mongo):
 
     # Delete a modal
 
-    @admin_bp.route('/admin/modal/<modal_id>', methods=['DELETE'])
-    @jwt_required()
+    @ admin_bp.route('/admin/modal/<modal_id>', methods=['DELETE'])
+    @ jwt_required()
     def delete_modal(modal_id):
         existing_modal = mongo.db.modal.find_one({'_id': ObjectId(modal_id)})
         if not existing_modal:
@@ -241,8 +264,8 @@ def initialize_admin_routes(mongo):
 
     # List all modals
 
-    @admin_bp.route('/admin/list-modal', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/list-modal', methods=['GET'])
+    @ jwt_required()
     def list_modals():
         # Exclude _id field from the response
         modals = list(mongo.db.modal.find({}, {'_id': 1, 'type': 1,
@@ -260,8 +283,8 @@ def initialize_admin_routes(mongo):
         return jsonify({'modals': formatted_modals}), 200
 
 # -----------------------------Add, Delete, Update and List Audio Files------------------------------------- #
-    @admin_bp.route('/admin/audio-files', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/audio-files', methods=['GET'])
+    @ jwt_required()
     def userAudioFiles():
 
         audiofiles = list(mongo.db.audioFiles.find(
@@ -280,8 +303,8 @@ def initialize_admin_routes(mongo):
 
     # -----------------------------Add, Delete, Update and List classification------------------------------------- #
 
-    @admin_bp.route('/admin/classification', methods=['POST'])
-    @jwt_required()
+    @ admin_bp.route('/admin/classification', methods=['POST'])
+    @ jwt_required()
     def add_classification():
         data = request.json
         title = data.get('title')
@@ -300,8 +323,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'Classification added successfully'}), 201
 
-    @admin_bp.route('/admin/classification/<classification_id>', methods=['PUT'])
-    @jwt_required()
+    @ admin_bp.route('/admin/classification/<classification_id>', methods=['PUT'])
+    @ jwt_required()
     def update_classification(classification_id):
         data = request.json
         title = data.get('title')
@@ -325,8 +348,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'Classifications updated successfully'}), 200
 
-    @admin_bp.route('/admin/classification/<classification_id>', methods=['DELETE'])
-    @jwt_required()
+    @ admin_bp.route('/admin/classification/<classification_id>', methods=['DELETE'])
+    @ jwt_required()
     def delete_classification(classification_id):
         existing_classification = mongo.db.classifications.find_one(
             {'_id': ObjectId(classification_id)})
@@ -337,8 +360,8 @@ def initialize_admin_routes(mongo):
             {'_id': ObjectId(classification_id)})
         return jsonify({'message': 'Classification deleted successfully'}), 200
 
-    @admin_bp.route('/admin/list-classifications', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/list-classifications', methods=['GET'])
+    @ jwt_required()
     def list_classifications():
         # Exclude _id field from the response
         classifications = list(mongo.db.classifications.find(
@@ -360,8 +383,8 @@ def initialize_admin_routes(mongo):
 
      # -----------------------------Prediction------------------------------------- #
 
-    @admin_bp.route('/admin/prediction', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/prediction', methods=['GET'])
+    @ jwt_required()
     def getPrediction():
 
         predictions = list(mongo.db.predictions.find({}, {
@@ -408,8 +431,8 @@ def initialize_admin_routes(mongo):
         return jsonify({'predictions': formatted_predictions}), 200
 
  # -----------------------------Count------------------------------------- #
-    @admin_bp.route('/admin/count', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/count', methods=['GET'])
+    @ jwt_required()
     def getCount():
         modal_count = mongo.db.modal.count_documents({})
         users_count = mongo.db.users.count_documents({})
@@ -426,8 +449,8 @@ def initialize_admin_routes(mongo):
         }), 200
 
  # -----------------------------Activity------------------------------------- #
-    @admin_bp.route('/admin/activity', methods=['POST'])
-    @jwt_required()
+    @ admin_bp.route('/admin/activity', methods=['POST'])
+    @ jwt_required()
     def addActivity():
         data = request.json
         title = data.get('title')
@@ -448,8 +471,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'Activity added successfully'}), 201
 
-    @admin_bp.route('/admin/activity/<activity_id>', methods=['DELETE'])
-    @jwt_required()
+    @ admin_bp.route('/admin/activity/<activity_id>', methods=['DELETE'])
+    @ jwt_required()
     def delete_activity(activity_id):
         existing_activity = mongo.db.activity.find_one(
             {'_id': ObjectId(activity_id)})
@@ -460,8 +483,8 @@ def initialize_admin_routes(mongo):
             {'_id': ObjectId(activity_id)})
         return jsonify({'message': 'Activity deleted successfully'}), 200
 
-    @admin_bp.route('/admin/activity/<activity_id>', methods=['PUT'])
-    @jwt_required()
+    @ admin_bp.route('/admin/activity/<activity_id>', methods=['PUT'])
+    @ jwt_required()
     def update_activity(activity_id):
         data = request.json
         title = data.get('title')
@@ -489,8 +512,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'Activity updated successfully'}), 200
 
-    @admin_bp.route('/admin/activity-theme/<activity_id>', methods=['GET'])
-    @jwt_required()
+    @ admin_bp.route('/admin/activity-theme/<activity_id>', methods=['GET'])
+    @ jwt_required()
     def list_activity_theme(activity_id):
 
         activitiesThemes = list(mongo.db.activityTheme.find(
@@ -507,8 +530,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'theme': formatted_activities_themes}), 200
 
-    @admin_bp.route('/admin/activity-theme', methods=['POST'])
-    @jwt_required()
+    @ admin_bp.route('/admin/activity-theme', methods=['POST'])
+    @ jwt_required()
     def add_activity_theme():
         data = request.json
         theme = data.get('theme')
@@ -529,8 +552,8 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'Theme added successfully'}), 201
 
-    @admin_bp.route('/admin/activity-theme/<theme_id>', methods=['DELETE'])
-    @jwt_required()
+    @ admin_bp.route('/admin/activity-theme/<theme_id>', methods=['DELETE'])
+    @ jwt_required()
     def delete_activity_theme(theme_id):
         existing_activity = mongo.db.activityTheme.find_one(
             {'_id': ObjectId(theme_id)})
