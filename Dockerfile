@@ -50,7 +50,7 @@ RUN apt-get update && apt-get install -y ca-certificates
 VOLUME ["/app/files/audioFiles", "/app/files/modal", "/app/files/user"]
 
 # Make port 5000 available to the world outside this container
-EXPOSE 5000
+EXPOSE 80
 
 # Run the application
-CMD ["python3.11", "run.py"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:80", "run:app"]

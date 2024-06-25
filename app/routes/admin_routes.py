@@ -60,6 +60,66 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'User created successfully'}), 201
 
+    @admin_bp.route('/admin/user-details/<userId>', methods=['GET'])
+    @jwt_required()
+    def userDetails(userId):
+        user = mongo.db.users.find_one({'_id': ObjectId(userId)})
+
+        if user:
+            sessions = list(mongo.db.activitySession.find(
+                {'userId': str(userId)},
+                {'_id': 1, 'activity_id': 1, 'theme_id': 1,
+                    'createdDate': 1, 'updatedDate': 1}
+            ))
+
+            formatted_sessions = []
+            for session in sessions:
+                session_id = str(session['_id'])
+                audioFiles = list(mongo.db.audioFiles.find(
+                    {'activitySessionId': session_id},
+                    {'_id': 1, 'filename': 1, 'file_url': 1, 'isPredicted': 1,
+                        'activitySessionId': 1, 'text': 1, 'createdDate': 1, 'updatedDate': 1}
+                ))
+
+                formatted_audioFiles = []
+                for file in audioFiles:
+                    file['_id'] = str(file['_id'])
+                    formatted_audioFiles.append(file)
+
+                session['_id'] = session_id
+                session['audioFiles'] = formatted_audioFiles
+                formatted_sessions.append(session)
+
+            response = {
+                'id': str(user['_id']),
+                'username': user['username'],
+                'email': user['email'],
+                'sessions': formatted_sessions,
+                'isAdmin': user.get('isAdmin', False),
+                'createdDate': user.get('createdDate', None)
+            }
+            return jsonify(response), 200
+        else:
+            return jsonify({'message': 'User details not found'}), 404
+
+    @admin_bp.route('/admin/list-users', methods=['GET'])
+    @jwt_required()
+    def listUsers():
+
+        users = list(mongo.db.users.find(
+            {}, {'_id': 1, 'username': 1, 'email': 1, 'isAdmin': 1,   'createdDate': 1, 'updatedDate': 1}))
+
+        if not users:
+            return jsonify({'message': 'No users files found'}), 404
+
+        formatted_users = []
+        for user in users:
+            user['_id'] = str(user['_id'])  # Convert ObjectId to string
+            formatted_users.append(user)
+
+        # Convert to JSON using dumps from bson.json_util
+        return jsonify({'users': formatted_users}), 200
+
     # -----------------------------Add, Delete, Update and List Model------------------------------------- #
     @admin_bp.route('/admin/modal/<modal_id>', methods=['GET'])
     @jwt_required()
@@ -429,6 +489,24 @@ def initialize_admin_routes(mongo):
 
         return jsonify({'message': 'Activity updated successfully'}), 200
 
+    @admin_bp.route('/admin/activity-theme/<activity_id>', methods=['GET'])
+    @jwt_required()
+    def list_activity_theme(activity_id):
+
+        activitiesThemes = list(mongo.db.activityTheme.find(
+            {'activity_id': str(activity_id)}, {'_id': 1, 'theme': 1, 'createdDate': 1, 'updatedDate': 1}))
+
+        if not activitiesThemes:
+            return jsonify({'message': 'No themes found'}), 404
+
+        formatted_activities_themes = []
+        for theme in activitiesThemes:
+            theme['_id'] = str(theme['_id'])
+
+            formatted_activities_themes.append(theme)
+
+        return jsonify({'theme': formatted_activities_themes}), 200
+
     @admin_bp.route('/admin/activity-theme', methods=['POST'])
     @jwt_required()
     def add_activity_theme():
@@ -450,3 +528,15 @@ def initialize_admin_routes(mongo):
         mongo.db.activityTheme.insert_one(new_modal)
 
         return jsonify({'message': 'Theme added successfully'}), 201
+
+    @admin_bp.route('/admin/activity-theme/<theme_id>', methods=['DELETE'])
+    @jwt_required()
+    def delete_activity_theme(theme_id):
+        existing_activity = mongo.db.activityTheme.find_one(
+            {'_id': ObjectId(theme_id)})
+        if not existing_activity:
+            return jsonify({'error': 'Activity not found'}), 404
+
+        mongo.db.activityTheme.delete_one(
+            {'_id': ObjectId(theme_id)})
+        return jsonify({'message': 'Activity theme deleted successfully'}), 200

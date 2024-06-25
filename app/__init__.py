@@ -7,6 +7,7 @@ from .routes.admin_routes import admin_bp, initialize_admin_routes
 from .routes.user_routes import user_bp, initialize_user_routes
 from .routes.common_routes import common_bp, initialize_common_routes
 from .routes.static_routes import static_bp
+from .routes.index_routes import index_bp  # Import the index blueprint
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
@@ -16,10 +17,11 @@ import logging
 def create_app(config_class=Config):
     load_dotenv()
     # Set up logging
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
+    # logging.basicConfig(level=logging.DEBUG)
+    # logger = logging.getLogger(__name__)
 
-    app = Flask(__name__, static_url_path='', static_folder='files')
+    app = Flask(__name__, static_url_path='',
+                static_folder='files', template_folder='templates')
     CORS(app)
     app.config.from_object(config_class)
 
@@ -67,5 +69,6 @@ def create_app(config_class=Config):
     app.register_blueprint(user_bp)
     app.register_blueprint(common_bp)
     app.register_blueprint(static_bp)
+    app.register_blueprint(index_bp)  # Register the index blueprint
 
     return app

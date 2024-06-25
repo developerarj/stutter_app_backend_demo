@@ -91,4 +91,5 @@ urllib3==2.2.1
 wavio==0.0.8
 Werkzeug==3.0.2
 wrapt==1.14.1
+gunicorn==20.1.0
 
